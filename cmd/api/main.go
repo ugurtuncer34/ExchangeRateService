@@ -7,14 +7,35 @@ import (
 )
 
 func main(){
-	fmt.Println("Exchange Rate Service (Go) is up and ready!")
+	fmt.Println("Exchange Rate Service (Go) is starting...")
 
-	fmt.Println("Latest EUR rate is coming from TCMB...")
+	cache := rates.NewRateCache()
 
-	rate, err := rates.FetchTodayRate("EUR")
-	if err != nil {
-		log.Fatalf("An error occured: %v", err) // log the error on screen and exit 1
+	currencyCode := "EUR"
+
+	// first request (cache is empty, goes to TCMB)
+	log.Printf("1. Request: Fetching %s rate...", currencyCode)
+	rate, exists := cache.Get(currencyCode) // first, ask cache
+	if !exists {
+		log.Println("Cache miss! Fetching from TCMB...")
+
+		var err error
+		rate, err = rates.FetchTodayRate(currencyCode)
+		if err != nil {
+			log.Fatalf("Error occured: %v", err)
+		}
+
+		// write value to cache
+		cache.Set(currencyCode, rate)
+		log.Printf("Successfully saved to cache. Rate: %f", rate)
 	}
 
-	fmt.Printf("Success! Latest EUR rate: %f TL\n", rate)
+	// second request (same currency)
+	log.Printf("2. Request: Fetching %s rate again...", currencyCode)
+	rate2, exists2 := cache.Get(currencyCode)
+	if exists2 {
+		log.Printf("Cache hit! Retrieved from memory instantly. Rate: %f", rate2)
+	} else {
+		log.Println("This should not happen, it must be in cache!")
+	} // used log instead of fmt because log.Println adds date and time by default
 }
