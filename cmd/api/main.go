@@ -20,6 +20,9 @@ func main(){
 	// wake up cache system
 	cache := rates.NewRateCache()
 
+	// start background worker
+	rates.StartProactiveCache(cache)
+
 	// create handler and inject cache dependency
 	rateHandler := rates.RateHandler{
 		Cache: cache,
