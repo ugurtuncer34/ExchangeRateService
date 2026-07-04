@@ -1,30 +1,40 @@
 package main
 
 import (
-	"exchangerateservice/internal/rates"
 	"log"
-	"time"
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
+	"exchangerateservice/internal/rates"
 )
 
 func main(){
-	log.Println("Exchange Rate Service (Go) is starting...")
+	r := chi.NewRouter()
 
-	// YYYY-MM-DD, 2026-06-13 is saturday
-	targetDateString := "2026-06-13"
+	// useful middlewares (logging and crash preventing)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
-	// convert string date to time.Time object in Go
-	targetDate, err := time.Parse("2006-01-02", targetDateString)
-	if err != nil {
-		log.Fatalf("Failed to parse date: %v", err)
+	// wake up cache system
+	cache := rates.NewRateCache()
+
+	// create handler and inject cache dependency
+	rateHandler := rates.RateHandler{
+		Cache: cache,
 	}
 
-	currencyCode := "EUR"
-	log.Printf("Requesting %s rate for date: %s", currencyCode, targetDateString)
+	// define endpoint
+	r.Get("/api/rates", rateHandler.GetRate)
 
-	rate, err := rates.FetchTodayRate(currencyCode, targetDate)
+	// start server
+	port := ":8080"
+	log.Printf("Exchange Rate Service API is running on port %s", port)
+
+	// http.ListenAndServe blocks the code, listens until close
+	err := http.ListenAndServe(port, r)
 	if err != nil {
-		log.Fatalf("Error occured: %v", err)
+		log.Fatalf("Server failed to start: %v", err)
 	}
-
-	log.Printf("Success! Retrieved %s rate: %f", currencyCode, rate)
 }

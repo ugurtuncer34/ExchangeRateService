@@ -35,7 +35,7 @@ func buildUrl(targetDate time.Time) string {
 	return fmt.Sprintf("https://www.tcmb.gov.tr/kurlar/%s/%s.xml", yearMonth, dayMonthYear)
 }
 
-func FetchTodayRate(targetCurrency string, date time.Time) (float64, error) {
+func FetchRateByDate(targetCurrency string, date time.Time) (float64, error) {
 	validDate := getValidWorkday(date)
 	url := buildUrl(validDate)
 
