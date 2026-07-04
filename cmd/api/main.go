@@ -2,40 +2,29 @@ package main
 
 import (
 	"exchangerateservice/internal/rates"
-	"fmt"
 	"log"
+	"time"
 )
 
 func main(){
-	fmt.Println("Exchange Rate Service (Go) is starting...")
+	log.Println("Exchange Rate Service (Go) is starting...")
 
-	cache := rates.NewRateCache()
+	// YYYY-MM-DD, 2026-06-13 is saturday
+	targetDateString := "2026-06-13"
 
-	currencyCode := "EUR"
-
-	// first request (cache is empty, goes to TCMB)
-	log.Printf("1. Request: Fetching %s rate...", currencyCode)
-	rate, exists := cache.Get(currencyCode) // first, ask cache
-	if !exists {
-		log.Println("Cache miss! Fetching from TCMB...")
-
-		var err error
-		rate, err = rates.FetchTodayRate(currencyCode)
-		if err != nil {
-			log.Fatalf("Error occured: %v", err)
-		}
-
-		// write value to cache
-		cache.Set(currencyCode, rate)
-		log.Printf("Successfully saved to cache. Rate: %f", rate)
+	// convert string date to time.Time object in Go
+	targetDate, err := time.Parse("2006-01-02", targetDateString)
+	if err != nil {
+		log.Fatalf("Failed to parse date: %v", err)
 	}
 
-	// second request (same currency)
-	log.Printf("2. Request: Fetching %s rate again...", currencyCode)
-	rate2, exists2 := cache.Get(currencyCode)
-	if exists2 {
-		log.Printf("Cache hit! Retrieved from memory instantly. Rate: %f", rate2)
-	} else {
-		log.Println("This should not happen, it must be in cache!")
-	} // used log instead of fmt because log.Println adds date and time by default
+	currencyCode := "EUR"
+	log.Printf("Requesting %s rate for date: %s", currencyCode, targetDateString)
+
+	rate, err := rates.FetchTodayRate(currencyCode, targetDate)
+	if err != nil {
+		log.Fatalf("Error occured: %v", err)
+	}
+
+	log.Printf("Success! Retrieved %s rate: %f", currencyCode, rate)
 }
