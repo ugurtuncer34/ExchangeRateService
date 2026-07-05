@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package rates;
+
+// where to put Go codes once they are created
+option go_package = "./internal/grpc/pb";
+
+// service and the public method
+service ExchangeRateService {
+  rpc GetExchangeRate (RateRequest) returns (RateResponse);
+}
+
+// below numbers are orders, not values. used to convert to binary
+message RateRequest {
+  string currency = 1;
+  string date = 2; // YYYY-MM-DD
+}
+
+message RateResponse {
+  string currency = 1;
+  string date = 2;
+  double rate = 3; // double in Protobuf for float64 in Go
+  string source = 4;
+}

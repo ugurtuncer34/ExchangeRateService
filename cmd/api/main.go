@@ -2,26 +2,52 @@ package main
 
 import (
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"google.golang.org/grpc"
 
 	"exchangerateservice/internal/rates"
+
+	mygrpc "exchangerateservice/internal/grpc" // special name to prevent name conflict
+	"exchangerateservice/internal/grpc/pb"
 )
 
 func main(){
-	r := chi.NewRouter()
+	// wake up common cache system and background worker
+	cache := rates.NewRateCache()
+	rates.StartProactiveCache(cache)
+	
+	// gRPC SERVER PORT: 50051
+	// listen to port on TCP
+	grpcPort := ":50051"
+	grpcListener, err := net.Listen("tcp", grpcPort)
+	if err != nil {
+		log.Fatalf("Failed to listen for gRPC: %v", err)
+	}
 
-	// useful middlewares (logging and crash preventing)
+	grpcServer := grpc.NewServer() // create gRPC server object
+	// create GrpcServer and give cache inside
+	myGrpcService := &mygrpc.GrpcServer{
+		Cache: cache,
+	}
+	// register object to server
+	pb.RegisterExchangeRateServiceServer(grpcServer, myGrpcService)
+
+	// start gRPC server inside a Goroutine so that the code can continue reading downward
+	go func() {
+		log.Printf("gRPC Server is running on port %s", grpcPort)
+		if err := grpcServer.Serve(grpcListener); err != nil {
+			log.Fatalf("Failed to serve gRPC: %v", err)
+		}
+	}()
+
+	// REST API SERVER PORT: 8080
+	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-
-	// wake up cache system
-	cache := rates.NewRateCache()
-
-	// start background worker
-	rates.StartProactiveCache(cache)
 
 	// create handler and inject cache dependency
 	rateHandler := rates.RateHandler{
@@ -32,11 +58,11 @@ func main(){
 	r.Get("/api/rates", rateHandler.GetRate)
 
 	// start server
-	port := ":8080"
-	log.Printf("Exchange Rate Service API is running on port %s", port)
+	restPort := ":8080"
+	log.Printf("Exchange Rate Service API is running on port %s", restPort)
 
 	// http.ListenAndServe blocks the code, listens until close
-	err := http.ListenAndServe(port, r)
+	err = http.ListenAndServe(restPort, r)
 	if err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
