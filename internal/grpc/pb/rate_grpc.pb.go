@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ExchangeRateService_GetExchangeRate_FullMethodName = "/rates.ExchangeRateService/GetExchangeRate"
+	ExchangeRateService_GetCryptoRate_FullMethodName   = "/rates.ExchangeRateService/GetCryptoRate"
 )
 
 // ExchangeRateServiceClient is the client API for ExchangeRateService service.
@@ -29,6 +30,7 @@ const (
 // service and the public method
 type ExchangeRateServiceClient interface {
 	GetExchangeRate(ctx context.Context, in *RateRequest, opts ...grpc.CallOption) (*RateResponse, error)
+	GetCryptoRate(ctx context.Context, in *CryptoRequest, opts ...grpc.CallOption) (*CryptoResponse, error)
 }
 
 type exchangeRateServiceClient struct {
@@ -49,6 +51,16 @@ func (c *exchangeRateServiceClient) GetExchangeRate(ctx context.Context, in *Rat
 	return out, nil
 }
 
+func (c *exchangeRateServiceClient) GetCryptoRate(ctx context.Context, in *CryptoRequest, opts ...grpc.CallOption) (*CryptoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CryptoResponse)
+	err := c.cc.Invoke(ctx, ExchangeRateService_GetCryptoRate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ExchangeRateServiceServer is the server API for ExchangeRateService service.
 // All implementations must embed UnimplementedExchangeRateServiceServer
 // for forward compatibility.
@@ -56,6 +68,7 @@ func (c *exchangeRateServiceClient) GetExchangeRate(ctx context.Context, in *Rat
 // service and the public method
 type ExchangeRateServiceServer interface {
 	GetExchangeRate(context.Context, *RateRequest) (*RateResponse, error)
+	GetCryptoRate(context.Context, *CryptoRequest) (*CryptoResponse, error)
 	mustEmbedUnimplementedExchangeRateServiceServer()
 }
 
@@ -68,6 +81,9 @@ type UnimplementedExchangeRateServiceServer struct{}
 
 func (UnimplementedExchangeRateServiceServer) GetExchangeRate(context.Context, *RateRequest) (*RateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetExchangeRate not implemented")
+}
+func (UnimplementedExchangeRateServiceServer) GetCryptoRate(context.Context, *CryptoRequest) (*CryptoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCryptoRate not implemented")
 }
 func (UnimplementedExchangeRateServiceServer) mustEmbedUnimplementedExchangeRateServiceServer() {}
 func (UnimplementedExchangeRateServiceServer) testEmbeddedByValue()                             {}
@@ -108,6 +124,24 @@ func _ExchangeRateService_GetExchangeRate_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ExchangeRateService_GetCryptoRate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CryptoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ExchangeRateServiceServer).GetCryptoRate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ExchangeRateService_GetCryptoRate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ExchangeRateServiceServer).GetCryptoRate(ctx, req.(*CryptoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ExchangeRateService_ServiceDesc is the grpc.ServiceDesc for ExchangeRateService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -118,6 +152,10 @@ var ExchangeRateService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetExchangeRate",
 			Handler:    _ExchangeRateService_GetExchangeRate_Handler,
+		},
+		{
+			MethodName: "GetCryptoRate",
+			Handler:    _ExchangeRateService_GetCryptoRate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -12,6 +12,7 @@ import (
 type GrpcServer struct{ // will apply the methods in the contract
 	pb.UnimplementedExchangeRateServiceServer // if new methods, don't crash
 	Cache *rates.RateCache // work on the same cache (ram) as in REST
+	CryptoCache *rates.CryptoCache
 } 
 
 // this func is the corresponding method in rpc for Go
@@ -53,5 +54,37 @@ func (s *GrpcServer) GetExchangeRate(ctx context.Context, req *pb.RateRequest) (
 		Date: req.Date,
 		Rate: rate,
 		Source: "TCMB",
+	}, nil
+}
+
+// corresponding method in rpc for Go
+func (s *GrpcServer) GetCryptoRate(ctx context.Context, req *pb.CryptoRequest) (*pb.CryptoResponse, error) {
+	symbol := req.Symbol // e.g. "BTCUSDT"
+
+	// cache control
+	if cachedPrice, exists := s.CryptoCache.Get(symbol); exists {
+		log.Printf("[gRPC] Served %s from CACHE", symbol)
+		return &pb.CryptoResponse{
+			Symbol: symbol,
+			Price:  cachedPrice,
+			Source: "Cache",
+		}, nil
+	}
+
+	// if not in cache or TTL passed, fetch from Binance
+	price, err := rates.FetchCryptoPrice(symbol)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch crypto price: %v", err)
+	}
+
+	// write to cache and set 5 mins TTL
+	s.CryptoCache.Set(symbol, price, 5)
+	log.Printf("[gRPC] Served %s from BINANCE API", symbol)
+
+	// return success response
+	return &pb.CryptoResponse{
+		Symbol: symbol,
+		Price:  price,
+		Source: "Binance API",
 	}, nil
 }

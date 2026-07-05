@@ -8,6 +8,7 @@ option go_package = "./internal/grpc/pb";
 // service and the public method
 service ExchangeRateService {
   rpc GetExchangeRate (RateRequest) returns (RateResponse);
+  rpc GetCryptoRate (CryptoRequest) returns (CryptoResponse);
 }
 
 // below numbers are orders, not values. used to convert to binary
@@ -21,4 +22,14 @@ message RateResponse {
   string date = 2;
   double rate = 3; // double in Protobuf for float64 in Go
   string source = 4;
+}
+
+message CryptoRequest {
+  string symbol = 1;
+}
+
+message CryptoResponse {
+  string symbol = 1;
+  double price = 2; // usdt price
+  string source = 3; // binance api or cache
 }

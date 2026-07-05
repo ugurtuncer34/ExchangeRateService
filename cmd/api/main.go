@@ -19,6 +19,7 @@ func main(){
 	// wake up common cache system and background worker
 	cache := rates.NewRateCache()
 	rates.StartProactiveCache(cache)
+	cryptoCache := rates.NewCryptoCache()
 	
 	// gRPC SERVER PORT: 50051
 	// listen to port on TCP
@@ -32,6 +33,7 @@ func main(){
 	// create GrpcServer and give cache inside
 	myGrpcService := &mygrpc.GrpcServer{
 		Cache: cache,
+		CryptoCache: cryptoCache,
 	}
 	// register object to server
 	pb.RegisterExchangeRateServiceServer(grpcServer, myGrpcService)
