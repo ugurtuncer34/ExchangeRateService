@@ -55,7 +55,7 @@ func (h *RateHandler) GetRate(w http.ResponseWriter, r *http.Request) {
 			Rate: cachedRate,
 			Source: "Cache", // just to see
 		}
-		log.Printf("Served %s from CACHE", cacheKey)
+		log.Printf("[REST] Served %s from CACHE", cacheKey)
 		writeJSON(w, http.StatusOK, response)
 		return
 	}
@@ -79,7 +79,7 @@ func (h *RateHandler) GetRate(w http.ResponseWriter, r *http.Request) {
 		Source: "TCMB",
 	}
 
-	log.Printf("Served %s from TCMB", cacheKey)
+	log.Printf("[REST] Served %s from TCMB", cacheKey)
 	writeJSON(w, http.StatusOK, response)
 }
 
