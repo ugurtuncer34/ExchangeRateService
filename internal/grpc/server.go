@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"google.golang.org/grpc/metadata"
 )
 
 type GrpcServer struct{ // will apply the methods in the contract
@@ -14,6 +16,18 @@ type GrpcServer struct{ // will apply the methods in the contract
 	Cache *rates.RateCache // work on the same cache (ram) as in REST
 	CryptoCache *rates.CryptoCache
 } 
+
+// new logging structure
+func logWithCorrelation(ctx context.Context, format string, v ...interface{}) {
+	corrID := "unknown"
+	if md, ok := metadata.FromIncomingContext(ctx); ok {
+		if vals := md.Get("x-correlation-id"); len(vals) > 0 {
+			corrID = vals[0]
+		}
+	}
+	msg := fmt.Sprintf(format, v...)
+	log.Printf("[%s] %s", corrID, msg)
+}
 
 // this func is the corresponding method in rpc for Go
 func (s *GrpcServer) GetExchangeRate(ctx context.Context, req *pb.RateRequest) (*pb.RateResponse, error) {
@@ -27,7 +41,7 @@ func (s *GrpcServer) GetExchangeRate(ctx context.Context, req *pb.RateRequest) (
 	cacheKey := fmt.Sprintf("%s_%s", req.Currency, targetDate.Format("2006-01-02"))
 	// cache control
 	if cachedRate, exists := s.Cache.Get(cacheKey); exists {
-		log.Printf("[gRPC] Served %s from CACHE", cacheKey)
+		logWithCorrelation(ctx, "[gRPC] Served %s from CACHE", cacheKey)
 
 		// RateResponse type created with protobuf
 		return &pb.RateResponse{
@@ -46,7 +60,7 @@ func (s *GrpcServer) GetExchangeRate(ctx context.Context, req *pb.RateRequest) (
 
 	// write to cache
 	s.Cache.Set(cacheKey, rate)
-	log.Printf("[gRPC] Served %s from TCMB", cacheKey)
+	logWithCorrelation(ctx, "[gRPC] Served %s from TCMB", cacheKey)
 
 	// return success response
 	return &pb.RateResponse{
@@ -63,7 +77,7 @@ func (s *GrpcServer) GetCryptoRate(ctx context.Context, req *pb.CryptoRequest) (
 
 	// cache control
 	if cachedPrice, exists := s.CryptoCache.Get(symbol); exists {
-		log.Printf("[gRPC] Served %s from CACHE", symbol)
+		logWithCorrelation(ctx, "[gRPC] Served %s from CACHE", symbol)
 		return &pb.CryptoResponse{
 			Symbol: symbol,
 			Price:  cachedPrice,
@@ -79,7 +93,7 @@ func (s *GrpcServer) GetCryptoRate(ctx context.Context, req *pb.CryptoRequest) (
 
 	// write to cache and set 5 mins TTL
 	s.CryptoCache.Set(symbol, price, 5)
-	log.Printf("[gRPC] Served %s from BINANCE API", symbol)
+	logWithCorrelation(ctx, "[gRPC] Served %s from BINANCE API", symbol)
 
 	// return success response
 	return &pb.CryptoResponse{
