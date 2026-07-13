@@ -9,7 +9,8 @@ A blazing-fast, lightweight, and thread-safe microservice built with Go. This se
 * **TTL-Based Crypto Caching:** Implements a specialized `sync.RWMutex` cache with a 5-minute Time-To-Live (TTL) expiration for highly volatile crypto assets, ensuring ultra-fast responses without hitting external API rate limits.
 * **Proactive Fiat Background Worker:** A dedicated Goroutine wakes up automatically every workday at exactly 15:30 (TRT) to proactively fetch and cache highly used currencies (EUR, USD). Keeping CPU footprint at 0% while idle.
 * **Smart Time-Travel Logic:** Implements a temporal fallback mechanism for fiat currencies. If a rate is requested for a weekend or an invalid future date, the algorithm automatically fetches the last valid workday's rate.
-* **Minimalist & Cloud-Native:** Packaged using a multi-stage Docker build with an `alpine` base. The final compiled binary results in an ultra-lightweight Docker image (~15MB), currently deployed in a self-hosted cloud environment.
+* **Observability & Distributed Tracing:** Fully instrumented with **OpenTelemetry**. It captures internal spans and links them with incoming `x-correlation-id` headers from the .NET Core gateway. Traces are exported via OTLP to a centralized **Jaeger** instance, providing a seamless end-to-end visualization of the request lifecycle.
+* **Minimalist & Cloud-Native:** Packaged using a multi-stage Docker build with an `alpine` base. The final compiled binary results in an ultra-lightweight Docker image (~15MB), natively deployed on **Coolify**.
 
 ## ⚡ Performance Metrics (Live Prod Data)
 
@@ -24,6 +25,7 @@ By leveraging Go's raw performance, binary serialization (Protobuf), and a smart
 * **Communication:** gRPC & Protocol Buffers (Protobuf), `go-chi/chi/v5` for REST
 * **Concurrency:** Native Goroutines & Channels, `sync.RWMutex`
 * **External APIs:** TCMB (Fiat), Binance API (Crypto)
+* **Observability:** OpenTelemetry (OTLP), Jaeger
 * **Deployment:** Docker, Coolify (Self-hosted)
 
 ## 📡 Communication Interfaces
@@ -67,5 +69,7 @@ Available for standard HTTP clients, frontend testing, and fallback mechanisms.
 2. Install dependencies: `go mod download`
 3. *(Optional)* Regenerate Protobuf files if `rate.proto` is modified:
    `protoc --go_out=. --go-grpc_out=. proto/rate.proto`
-4. Run the server: `go run cmd/api/main.go`
-5. The REST API will be available at `http://localhost:8080` and the gRPC server at `:50051`.
+4. Set the required Environment Variables:
+   * `OTLP_ENDPOINT`: URL for Jaeger/OpenTelemetry exporter (default is `localhost:4317` for local Jaeger setups).
+5. Run the server: `go run cmd/api/main.go`
+6. The REST API will be available at `http://localhost:8080` and the gRPC server at `:50051`.
